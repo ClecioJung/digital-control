@@ -155,7 +155,7 @@ filterDiscreet(&filter, zero, pole);
 
 The Laplace transfer function implemented by this filter is:
 
-<img src="https://render.githubusercontent.com/render/math?math=F(s) = \displaystyle\frac{1 %2B s/zero}{1 %2B s/pole}">
+<img src="https://render.githubusercontent.com/render/math?math=\color{blue} F(s) = \displaystyle\frac{1 %2B s/zero}{1 %2B s/pole}">
 
 ### Simplified First Order Filter
 
@@ -187,7 +187,7 @@ sFilterDiscreet(&filter, pole);
 
 The Laplace transfer function implemented by this filter is:
 
-<img src="https://render.githubusercontent.com/render/math?math=F(s) = \displaystyle\frac{1}{1 %2B s/pole}">
+<img src="https://render.githubusercontent.com/render/math?math=\color{blue} F(s) = \displaystyle\frac{1}{1 %2B s/pole}">
 
 ### Proportional Integral (PI) Control
 
@@ -247,7 +247,7 @@ float out = piControl(&pi, setPoint, feedBack);
 
 The Laplace transfer function implemented by this PI controller is:
 
-<img src="https://render.githubusercontent.com/render/math?math=F(s) = K_p \left(\displaystyle\frac{T_i s %2B 1}{T_i s}\right)">
+<img src="https://render.githubusercontent.com/render/math?math=\color{blue} F(s) = K_p \left(\displaystyle\frac{T_i s %2B 1}{T_i s}\right)">
 
 ### Proportional Integral Derivative (PID) Control
 
@@ -307,7 +307,7 @@ float out = pidControl(&pid, setPoint, feedBack);
 
 Since the output of this controller depends both on the error and the feedback, it cannot be described by a single Laplace transfer function. The output of this PI-D controller (denoted by `U(s)`) can be determined from the error (`E(s)`) and the feedback (`F(s)`), using the following Laplace expression:
 
-<img src="https://render.githubusercontent.com/render/math?math=U(s) = K_p \left(\displaystyle\frac{T_i s %2B 1}{T_i s}\right) E(s) - K_p \left(\displaystyle\frac{T_d s}{\left(T_d / N \right) s %2B 1}\right) F(s)">
+<img src="https://render.githubusercontent.com/render/math?math=\color{blue} U(s) = K_p \left(\displaystyle\frac{T_i s %2B 1}{T_i s}\right) E(s) - K_p \left(\displaystyle\frac{T_d s}{\left(T_d / N \right) s %2B 1}\right) F(s)">
 
 ### First Order Observer
 
@@ -340,6 +340,6 @@ observerProject(&observer, Kol, wol);
 
 The Laplace transfer function estimated by this observer is:
 
-<img src="https://render.githubusercontent.com/render/math?math=O(s) = \displaystyle\frac{K_{ol}}{s %2B w_{ol}}">
+<img src="https://render.githubusercontent.com/render/math?math=\color{blue} O(s) = \displaystyle\frac{K_{ol}}{s %2B w_{ol}}">
 
 More information about the functioning of this library can be achieved by consulting the source code (its not that hard). Feel free to contact me with questions or comments.

@@ -153,6 +153,10 @@ You may also change the filter coefficients at latter time, by calling this func
 filterDiscreet(&filter, zero, pole);
 ```
 
+The Laplace transfer function implemented by this filter is:
+
+<img src="https://render.githubusercontent.com/render/math?math=F(s) = \displaystyle\frac{1 %2B s/zero}{1 %2B s/pole}">
+
 ### Simplified First Order Filter
 
 The `SimplifiedFirstOrderFilter` object was designed to be a simplified version of the previously presented filter (it consumes slightly less memory, and requires less processing). It is also a first order filter, but its zero cannot be specified, always having a null value. This implementation uses the simpler [Forward discretization method](https://en.wikipedia.org/wiki/Euler_method) (also known as Euler method). here is an example of usage:
@@ -180,6 +184,10 @@ You may also change the filter coefficients at latter time, by calling this func
 ```c
 sFilterDiscreet(&filter, pole);
 ```
+
+The Laplace transfer function implemented by this filter is:
+
+<img src="https://render.githubusercontent.com/render/math?math=F(s) = \displaystyle\frac{1}{1 %2B s/pole}">
 
 ### Proportional Integral (PI) Control
 
@@ -237,6 +245,10 @@ piClosedLoopResponseProject(&pi, Mov, ts2, Kol, wol);
 float out = piControl(&pi, setPoint, feedBack);
 ```
 
+The Laplace transfer function implemented by this PI controller is:
+
+<img src="https://render.githubusercontent.com/render/math?math=F(s) = K_p \left(\displaystyle\frac{T_i s %2B 1}{T_i s}\right)">
+
 ### Proportional Integral Derivative (PID) Control
 
 The `PI_D` object defines an implementation of the PI-D controller in the academic form (it posseses filter in the derivative action and the derivative action acts on the feedback signal and not on the error). This algorithm is implemented using the [Tustin's discretization method](https://en.wikipedia.org/wiki/Bilinear_transform) (also known as bilinear transform). Check out this example:
@@ -293,6 +305,10 @@ pidDiscreet(&pid, Kp, Ti, Td, N);
 float out = pidControl(&pid, setPoint, feedBack);
 ```
 
+Since the output of this controller depends both on the error and the feedback, it cannot be described by a single Laplace transfer function. The output of this PI-D controller (denoted by `U(s)`) can be determined from the error (`E(s)`) and the feedback (`F(s)`), using the following Laplace expression:
+
+<img src="https://render.githubusercontent.com/render/math?math=U(s) = K_p \left(\displaystyle\frac{T_i s %2B 1}{T_i s}\right) E(s) - K_p \left(\displaystyle\frac{T_d s}{\left(T_d / N \right) s %2B 1}\right) F(s)">
+
 ### First Order Observer
 
 This object defines an estimator/observer of a first order system. If you know the open loop gain and the open loop bandwidth of a first order system, this struct may help you estimate its output signal from the input provided to this system. This algorithm was discretized using the [Zero-order hold approach](https://en.wikipedia.org/wiki/Zero-order_hold). Here is an example of usage:
@@ -321,5 +337,9 @@ You may also change the observer coefficients at latter time, by calling this fu
 ```c
 observerProject(&observer, Kol, wol);
 ```
+
+The Laplace transfer function estimated by this observer is:
+
+<img src="https://render.githubusercontent.com/render/math?math=O(s) = \displaystyle\frac{K_{ol}}{s %2B w_{ol}}">
 
 More information about the functioning of this library can be achieved by consulting the source code (its not that hard). Feel free to contact me with questions or comments.

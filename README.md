@@ -11,7 +11,7 @@ Thisis a simple C library containing very useful digital control and signal proc
 - The design parameters received by the functions exported by this library are all in the continuous domain. The discretization of these coefficients is performed by the functions themselves, using the appropriate discretization method for each case;
 - This library was used in the development of the following projects:
     - [Melhoria da robustez e eficiência em acionamentos de motores de indução trifásicos combinando as técnicas IFOC, LMC e MRAC](https://repositorio.utfpr.edu.br/jspui/bitstream/1/24529/1/melhoriarobustezeficienciamotores.pdf) (in brazilian portuguese);
-    - [Reactive power based MRAC for robustness and efficiency improvements on a IFOC induction motor drive](https://ieeexplore.ieee.org/abstract/document/9067318?casa_token=0JUMmf-MUVkAAAAA:rx2gcECYjaEtlsSeFbuGvvVbKlMVLLZNRfT01U6cFbCLcEZofiVTVbElbsa3YASb6Db9STtacw);
+    - [Adaptive Loss Model Control for robustness and efficiency improvement of induction motor drive](https://ieeexplore.ieee.org/abstract/document/9612111);
 - This library includes the following implementations:
     - [Saturator](#Saturator);
     - [Ramp](#Ramp);

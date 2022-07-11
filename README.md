@@ -31,20 +31,6 @@ If you wish to use this library on your project, just download the header file `
 #include "digitalControl.h"
 ```
 
-This library also accept tree optional configurations, which are informed by preprocessor macros, just as in this example:
-
-```c
-// Saves in the structs the continuous parameters, just like poles,
-// continuous controller gains, etc.
-#define SAVE_CONTINUOS_PARAMETERS
-// Uses saturators on the PI and PI_D controllers
-#define USE_SATURATORS
-// Uses pre-filter on the reference (setpoint) for the PI_D controller
-#define USE_PRE_FILTER
-
-#include "digitalControl.h"
-```
-
 Following, more detailed description of each functionality of this library are provided.
 
 ### Saturator
@@ -195,13 +181,14 @@ The `PI` object is a simple implementation of the PI controller in the academic 
 
 ```c
 const float samplingTime = 0.01f;
+const bool useSaturator = false;
 float setPoint = 10.0f;
 float feedBack = 0.0f;
 float Kp = 10.0f; // Proportional gain
 float Ti = 0.1f; // Integral time
 // Creates an PI object and initializes it
 PI pi;
-piInit(&pi, samplingTime);
+piInit(&pi, samplingTime, useSaturator);
 // Inform the continuous gains to the PI struct
 piDiscreet(&pi, Kp, Ti);
 // Calculate the PI output. This function must be called
@@ -227,15 +214,13 @@ Another project possibility is to design the controller for a desired second ord
 piClosedLoopResponseProject(&pi, Mov, ts2, Kol, wol);
 ```
 
-If you wish to use saturators in this controler, you must define `USE_SATURATORS` before including the library header file in your project, and must also initialize the `PI`  internal saturator, like so:
+If you wish to use saturators in this controler, you must inform this at the initialization of the `PI` structure and must also initialize the  internal saturator, like so:
 
 ```c
-#define USE_SATURATORS
-#include "digitalControl.h"
-
 // Creates an PI object and initializes it
+const bool useSaturator = true;
 PI pi;
-piInit(&pi, samplingTime);
+piInit(&pi, samplingTime, useSaturator);
 // Initializes the PI internal saturator
 saturatorSet(&pi.sat, max, min);
 // Projects the PI controller by the desired second order response
@@ -255,6 +240,8 @@ The `PI_D` object defines an implementation of the PI-D controller in the academ
 
 ```c
 const float samplingTime = 0.01f;
+const bool useSaturator = false;
+const bool usePreFilter = false;
 float setPoint = 10.0f;
 float feedBack = 0.0f;
 float Kp = 10.0f; // Proportional gain
@@ -263,7 +250,7 @@ float Td = 0.1f; // Derivative time
 float N = 10.0f; // Derivative filter coefficient
 // Creates an PI_D object and initializes it
 PI_D pid;
-pidInit(&pid, samplingTime);
+pidInit(&pid, samplingTime, useSaturator, usePreFilter);
 // Inform the continuous gains to the PI_D struct
 pidDiscreet(&pid, Kp, Ti, Td, N);
 // Calculate the PI_D output. This function must be called
@@ -283,17 +270,18 @@ Just as in the PI controller case, you can design this controller for a desired 
 pidClosedLoopResponseProject(&pid, Mov, ts2, Kol, wol);
 ```
 
-If you wish to use saturators in this controler, you must define `USE_SATURATORS` before including the library header file in your project, and must also initialize the `PI_D`  internal saturator, just like in the `PI` case, so no example will be provided.
+If you wish to use saturators in this controler, you must pass `true` to the second argument of the function `pidInit`, and must also initialize the `PI_D` internal saturator. This procedure is similar to the `PI` case.
 
-If you define the macro `USE_PRE_FILTER` before including the library header file, the `PI_D` controller also will posses an internal pre-filter applied to the reference (setpoint). Here is an example of usage in this case:
+If you pass `true` to the third argument of the function `pidInit`, the `PI_D` controller also will posses an internal pre-filter applied to the reference (setpoint). Here is an example of usage in this case:
 
 ```c
-#define USE_PRE_FILTER
-#include "digitalControl.h"
-
 // Creates an PI_D object and initializes it
+const bool useSaturator = true;
+const bool usePreFilter = true;
 PI_D pid;
-pidInit(&pid, samplingTime);
+pidInit(&pid, samplingTime, useSaturator, usePreFilter);
+// Initializes the PI_D internal saturator
+saturatorSet(&pid.sat, max, min);
 // Initializes the internal pre-filter
 // This step can be skipped if you use the pidClosedLoopResponseProject
 // function, because it initializes the filter internally

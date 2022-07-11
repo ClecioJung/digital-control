@@ -3,6 +3,7 @@
 //------------------------------------------------------------------------------
 
 #include "digitalControl.h"
+
 #include <math.h>
 #include <stdint.h>
 
@@ -18,40 +19,33 @@
 // FUNCTIONS
 //------------------------------------------------------------------------------
 
-static float square(float x)
-{
+static float square(float x) {
     return x * x;
 }
 
 //------------------------------------------------------------------------------
-void saturatorSet(Saturator *this, const float max, const float min)
-{
+void saturatorSet(Saturator *this, const float max, const float min) {
     this->max = max;
     this->min = min;
 }
 
-float applySaturator(Saturator *this, const float value)
-{
-    if (value > this->max)
-    {
+float applySaturator(Saturator *this, const float value) {
+    if (value > this->max) {
         return this->max;
     }
-    if (value < this->min)
-    {
+    if (value < this->min) {
         return this->min;
     }
     return value;
 }
 
 //------------------------------------------------------------------------------
-void rampInit(RampGenerator *this, const float samplingTime)
-{
+void rampInit(RampGenerator *this, const float samplingTime) {
     this->samplingTime = samplingTime;
     rampReset(this);
 }
 
-void rampReset(RampGenerator *this)
-{
+void rampReset(RampGenerator *this) {
     this->upCounter = 0;
     this->upTime = 0;
     this->finalValue = 0.0f;
@@ -60,8 +54,7 @@ void rampReset(RampGenerator *this)
     this->deltaTime = 0.0f;
 }
 
-void rampSet(RampGenerator *this, const float upTime, const float finalValue)
-{
+void rampSet(RampGenerator *this, const float upTime, const float finalValue) {
     this->upTime = upTime;
     this->finalValue = finalValue;
     this->initialValue = this->previousOutput;
@@ -69,89 +62,71 @@ void rampSet(RampGenerator *this, const float upTime, const float finalValue)
     this->deltaTime = (this->samplingTime / this->upTime) * (this->finalValue - this->initialValue);
 }
 
-float calcRamp(RampGenerator *this)
-{
-    if (this->upCounter)
-    {
+float calcRamp(RampGenerator *this) {
+    if (this->upCounter) {
         this->previousOutput = this->finalValue - this->upCounter * this->deltaTime;
         this->upCounter--;
-    }
-    else
-    {
+    } else {
         this->previousOutput = this->finalValue;
     }
     return this->previousOutput;
 }
 
 //------------------------------------------------------------------------------
-void integratorInit(Integrator *this, const float samplingTime)
-{
+void integratorInit(Integrator *this, const float samplingTime) {
     this->samplingTime = samplingTime;
     integratorReset(this);
 }
 
-void integratorReset(Integrator *this)
-{
+void integratorReset(Integrator *this) {
     this->previousInput = 0.0f;
     this->previousOutput = 0.0f;
 }
 
 // Integrates using Tustin discretization method
-float integrate(Integrator *this, const float input)
-{
+float integrate(Integrator *this, const float input) {
     this->previousOutput += (this->samplingTime / 2.0) * (input + this->previousInput);
     this->previousInput = input;
     return this->previousOutput;
 }
 
 //------------------------------------------------------------------------------
-void diffInit(Differentiator *this, const float samplingTime)
-{
+void diffInit(Differentiator *this, const float samplingTime) {
     this->samplingTime = samplingTime;
     diffReset(this);
 }
 
-void diffReset(Differentiator *this)
-{
+void diffReset(Differentiator *this) {
     this->previousInput = 0.0f;
 }
 
 // Differentiates using Backward discretization method
-float differentiate(Differentiator *this, const float input)
-{
+float differentiate(Differentiator *this, const float input) {
     float output = (input - this->previousInput) / this->samplingTime;
     this->previousInput = input;
     return output;
 }
 
 //------------------------------------------------------------------------------
-void filterInit(FirstOrderFilter *this, const float zero, const float pole, const float samplingTime)
-{
+void filterInit(FirstOrderFilter *this, const float zero, const float pole, const float samplingTime) {
     this->samplingTime = samplingTime;
     filterReset(this);
     filterDiscreet(this, zero, pole);
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    this->pole = pole;
-    this->zero = zero;
-#endif
 }
 
-void filterReset(FirstOrderFilter *this)
-{
+void filterReset(FirstOrderFilter *this) {
     this->previousInput = 0.0f;
     this->previousOutput = 0.0f;
 }
 
 // Determines the filter coefficients using the Tustin discretization method
-void filterDiscreet(FirstOrderFilter *this, const float zero, const float pole)
-{
+void filterDiscreet(FirstOrderFilter *this, const float zero, const float pole) {
     this->coef[0] = (2.0 - pole * this->samplingTime) / (2.0 + pole * this->samplingTime);
     this->coef[1] = ((2.0 * (pole / zero) + pole * this->samplingTime) / (2.0 + pole * this->samplingTime));
     this->coef[2] = ((-2.0 * (pole / zero) + pole * this->samplingTime) / (2.0 + pole * this->samplingTime));
 }
 
-float filterProcess(FirstOrderFilter *this, const float input)
-{
+float filterProcess(FirstOrderFilter *this, const float input) {
     this->previousOutput = this->coef[0] * this->previousOutput + this->coef[1] * input + this->coef[2] * this->previousInput;
     this->previousInput = input;
     return this->previousOutput;
@@ -162,123 +137,96 @@ float filterProcess(FirstOrderFilter *this, const float input)
  * of a first order filter, there is only one pole and
  * it uses the simpler forward discretization method
  */
-void sFilterInit(SimplifiedFirstOrderFilter *this, float pole, const float samplingTime)
-{
+void sFilterInit(SimplifiedFirstOrderFilter *this, float pole, const float samplingTime) {
     this->samplingTime = samplingTime;
     sFilterReset(this);
     sFilterDiscreet(this, pole);
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    this->pole = pole;
-#endif
 }
 
-void sFilterReset(SimplifiedFirstOrderFilter *this)
-{
+void sFilterReset(SimplifiedFirstOrderFilter *this) {
     this->previousOutput = 0.0f;
 }
 
 // Determines the filter coefficients using the Forward discretization method
-void sFilterDiscreet(SimplifiedFirstOrderFilter *this, const float pole)
-{
+void sFilterDiscreet(SimplifiedFirstOrderFilter *this, const float pole) {
     this->coef[1] = pole * this->samplingTime;
     this->coef[0] = 1.0 - this->coef[1];
 }
 
-float sFilterProcess(SimplifiedFirstOrderFilter *this, const float input)
-{
+float sFilterProcess(SimplifiedFirstOrderFilter *this, const float input) {
     this->previousOutput = this->coef[0] * this->previousOutput + this->coef[1] * input;
     return this->previousOutput;
 }
 
 //------------------------------------------------------------------------------
 // Initializes PI controller
-void piInit(PI *this, const float samplingTime)
-{
+void piInit(PI *this, const float samplingTime, const bool useSaturator) {
     this->samplingTime = samplingTime;
+    this->useSaturator = useSaturator;
     piReset(this);
 }
 
-void piReset(PI *this)
-{
+void piReset(PI *this) {
     this->controlSignal = 0.0f;
     this->previousError = 0.0f;
 }
 
 // Determines the discrete gains using the Tustin discretization method
-void piDiscreet(PI *this, const float Kp, const float Ti)
-{
+void piDiscreet(PI *this, const float Kp, const float Ti) {
     this->Kc = Kp * (2.0 + this->samplingTime / Ti) / (2.0);
     this->zc = (2.0 - this->samplingTime / Ti) / (2.0 + this->samplingTime / Ti);
 }
 
 // Design controller using pole zero cancellation
-void piPoleZeroCancelationProject(PI *this, const float wcl, const float Kol, const float wol)
-{
-    float Ti = 1.0 / wol;
-    float Kp = (wcl * Ti) / Kol;
+void piPoleZeroCancelationProject(PI *this, const float wcl, const float Kol, const float wol) {
+    const float Ti = 1.0 / wol;
+    const float Kp = (wcl * Ti) / Kol;
     piDiscreet(this, Kp, Ti);
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    this->wcl = wcl;
-    this->Ti = Ti;
-    this->Kp = Kp;
-#endif
 }
 
 // Design controller for desired closed loop characteristics
-void piClosedLoopResponseProject(PI *this, const float Mov, const float ts2, const float Kol, const float wol)
-{
+void piClosedLoopResponseProject(PI *this, const float Mov, const float ts2, const float Kol, const float wol) {
     // Desired closed loop characteristics
-    float xi = fabsf(logf(Mov / 100.0f) / sqrtf(square(logf(Mov / 100.0f)) + square(M_PI)));
-    float wn = 4.0 / (xi * ts2);
+    const float xi = fabsf(logf(Mov / 100.0f) / sqrtf(square(logf(Mov / 100.0f)) + square(M_PI)));
+    const float wn = 4.0 / (xi * ts2);
     // Calculate the analog gains
-    float Kp = (2.0 * xi * wn - wol) / (Kol * wol);
-    float Ti = (2.0 * xi * wn - wol) / (square(wn));
+    const float Kp = (2.0 * xi * wn - wol) / (Kol * wol);
+    const float Ti = (2.0 * xi * wn - wol) / (square(wn));
     piDiscreet(this, Kp, Ti);
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    this->xi = xi;
-    this->wn = wn;
-    this->Ti = Ti;
-    this->Kp = Kp;
-#endif
 }
 
 // Calculate control output
-float piControl(PI *this, const float setPoint, const float feedBack)
-{
+float piControl(PI *this, const float setPoint, const float feedBack) {
     float error = setPoint - feedBack;
     this->controlSignal = this->controlSignal + this->Kc * (error - this->zc * this->previousError);
     this->previousError = error;
-#ifdef USE_SATURATORS
-    this->controlSignal = applySaturator(&this->sat, this->controlSignal);
-#endif
+    if (this->useSaturator) {
+        this->controlSignal = applySaturator(&this->sat, this->controlSignal);
+    }
     return this->controlSignal;
 }
 
 //------------------------------------------------------------------------------
 // Initializes PI_D controller
-void pidInit(PI_D *this, const float samplingTime)
-{
+void pidInit(PI_D *this, const float samplingTime, const bool useSaturator, const bool usePreFilter) {
     this->samplingTime = samplingTime;
+    this->useSaturator = useSaturator;
+    this->usePreFilter = usePreFilter;
     pidReset(this);
 }
 
-void pidReset(PI_D *this)
-{
-    for (uint16_t i = 0; i < 3; i++)
-    {
+void pidReset(PI_D *this) {
+    for (uint16_t i = 0; i < 3; i++) {
         this->feedBack[i] = 0.0f;
         this->error[i] = 0.0f;
         this->controlSignal[i] = 0.0f;
     }
-#ifdef USE_PRE_FILTER
     this->spFiltered = 0.0f;
     filterReset(&this->preFilter);
-#endif
 }
 
 // Determines the discrete gains using the Tustin discretization method
-void pidDiscreet(PI_D *this, const float Kp, const float Ti, const float Td, const float N)
-{
+void pidDiscreet(PI_D *this, const float Kp, const float Ti, const float Td, const float N) {
     this->coef[0] = (this->samplingTime + 2.0 * Td / N) / (this->samplingTime + Td / N);
     this->coef[1] = -(Td / N) / (this->samplingTime + Td / N);
     this->coef[2] = Kp * (2.0 * Ti + this->samplingTime) / (2.0 * Ti);
@@ -290,67 +238,49 @@ void pidDiscreet(PI_D *this, const float Kp, const float Ti, const float Td, con
 }
 
 // Design controller for desired closed loop characteristics
-void pidClosedLoopResponseProject(PI_D *this, const float Mov, const float ts2, const float Kol, const float wol)
-{
-    float xi, wn, real, imag, minZ, maxZ, zero, Ti, Kp, Td;
-    // Derivative filter coefficient
+void pidClosedLoopResponseProject(PI_D *this, const float Mov, const float ts2, const float Kol, const float wol) {
+    //  Derivative filter coefficient
     const float N = 10.0f;
     // Desired closed loop characteristics
-    xi = fabsf(logf(Mov / 100.0f) / sqrtf(square(logf(Mov / 100.0f)) + square(M_PI)));
-    wn = 4.0 / (xi * ts2);
-    real = fabsf(xi * wn);
-    imag = fabsf(wn * sqrtf(1 - square(xi)));
+    const float xi = fabsf(logf(Mov / 100.0f) / sqrtf(square(logf(Mov / 100.0f)) + square(M_PI)));
+    const float wn = 4.0 / (xi * ts2);
+    const float real = fabsf(xi * wn);
+    // const float imag = fabsf(wn * sqrtf(1 - square(xi)));
     // Determines the closed-loop zero location
-    minZ = wn / (2.0 * xi);
-    maxZ = square(wn) / (2.0 * xi * wn - wol);
-    zero = sqrtf(minZ * maxZ);
+    const float minZ = wn / (2.0 * xi);
+    const float maxZ = square(wn) / (2.0 * xi * wn - wol);
+    const float zero = sqrtf(minZ * maxZ);
     // Calculate the analog gains
-    Ti = 1.0 / zero;
-    Kp = wn / (Kol * (2.0 * xi * zero - wn));
-    Td = zero / square(wn) - 1.0 / (Kp * Kol * wol);
+    const float Ti = 1.0 / zero;
+    const float Kp = wn / (Kol * (2.0 * xi * zero - wn));
+    const float Td = zero / square(wn) - 1.0 / (Kp * Kol * wol);
     pidDiscreet(this, Kp, Ti, Td, N);
-#ifdef USE_PRE_FILTER
     // Project the pre filter
-    filterInit(&this->preFilter, 10.0f * real, zero, this->samplingTime);
-#endif
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    this->xi = xi;
-    this->wn = wn;
-    this->real = real;
-    this->imag = imag;
-    this->minZ = minZ;
-    this->maxZ = maxZ;
-    this->zero = zero;
-    this->Ti = Ti;
-    this->Kp = Kp;
-    this->Td = Td;
-    this->N = N;
-#endif
+    if (this->usePreFilter) {
+        filterInit(&this->preFilter, 10.0f * real, zero, this->samplingTime);
+    }
 }
 
 // Calculate the control output
-float pidControl(PI_D *this, const float setPoint, const float feedBack)
-{
+float pidControl(PI_D *this, const float setPoint, const float feedBack) {
     this->feedBack[2] = feedBack;
-#ifdef USE_PRE_FILTER
-    this->spFiltered = filterProcess(&this->preFilter, setPoint);
+    if (this->usePreFilter) {
+        this->spFiltered = filterProcess(&this->preFilter, setPoint);
+    } else {
+        this->spFiltered = setPoint;
+    }
     this->error[2] = this->spFiltered - feedBack;
-#else
-    this->error[2] = setPoint - feedBack;
-#endif
     // Control signal
     this->controlSignal[2] = this->coef[0] * this->controlSignal[1] + this->coef[1] * this->controlSignal[0];
-    for (uint16_t i = 0; i < 3; i++)
-    {
+    for (uint16_t i = 0; i < 3; i++) {
         this->controlSignal[2] += this->coef[7 - i] * this->feedBack[i];
         this->controlSignal[2] += this->coef[4 - i] * this->error[i];
     }
-#ifdef USE_SATURATORS
-    this->controlSignal[2] = applySaturator(&this->sat, this->controlSignal[2]);
-#endif
+    if (this->useSaturator) {
+        this->controlSignal[2] = applySaturator(&this->sat, this->controlSignal[2]);
+    }
     // Apply delay to internal buffers
-    for (uint16_t i = 0; i < 2; i++)
-    {
+    for (uint16_t i = 0; i < 2; i++) {
         this->feedBack[i] = this->feedBack[i + 1];
         this->error[i] = this->error[i + 1];
         this->controlSignal[i] = this->controlSignal[i + 1];
@@ -359,32 +289,24 @@ float pidControl(PI_D *this, const float setPoint, const float feedBack)
 }
 
 //------------------------------------------------------------------------------
-void observerInit(FirstOrderObserver *this, const float Kol, const float wol, const float samplingTime)
-{
+void observerInit(FirstOrderObserver *this, const float Kol, const float wol, const float samplingTime) {
     this->samplingTime = samplingTime;
     observerProject(this, Kol, wol);
     observerReset(this);
 }
 
-void observerReset(FirstOrderObserver *this)
-{
+void observerReset(FirstOrderObserver *this) {
     this->previousInput = 0.0f;
     this->previousOutput = 0.0f;
 }
 
 // FirstOrderObserver design (ZOH approach)
-void observerProject(FirstOrderObserver *this, const float Kol, const float wol)
-{
+void observerProject(FirstOrderObserver *this, const float Kol, const float wol) {
     this->zd = expf(-this->samplingTime * wol);
     this->Kd = Kol * (1 - this->zd);
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    this->Kol = Kol;
-    this->wol = wol;
-#endif
 }
 
-float observerProcess(FirstOrderObserver *this, const float input)
-{
+float observerProcess(FirstOrderObserver *this, const float input) {
     this->previousOutput = this->zd * this->previousOutput + this->Kd * (this->previousInput);
     this->previousInput = input;
     return this->previousOutput;

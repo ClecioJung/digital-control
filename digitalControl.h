@@ -6,6 +6,7 @@
 // LIBRARIES
 //------------------------------------------------------------------------------
 
+#include <stdbool.h>
 #include <stdint.h>
 
 //------------------------------------------------------------------------------
@@ -54,10 +55,6 @@ typedef struct
     // Constants
     float samplingTime;
     float coef[3];
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    float zero;
-    float pole;
-#endif
 } FirstOrderFilter;
 
 /* This is meant to be the minimalistic implemensamplingTimetion
@@ -70,29 +67,18 @@ typedef struct
     // Constants
     float samplingTime;
     float coef[2];
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    float pole;
-#endif
 } SimplifiedFirstOrderFilter;
 
 typedef struct
 {
     float controlSignal;
     float previousError;
-#ifdef USE_SATURATORS
+    bool useSaturator;
     Saturator sat;
-#endif
     // Constants
     float samplingTime;
     float Kc;
     float zc;
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    float wcl;
-    float xi;
-    float wn;
-    float Kp;
-    float Ti;
-#endif
 } PI;
 
 typedef struct
@@ -100,29 +86,14 @@ typedef struct
     float feedBack[3];
     float error[3];
     float controlSignal[3];
-#ifdef USE_PRE_FILTER
+    bool useSaturator;
+    Saturator sat;
+    bool usePreFilter;
     float spFiltered;
     FirstOrderFilter preFilter;
-#endif
-#ifdef USE_SATURATORS
-    Saturator sat;
-#endif
     // Constants
     float samplingTime;
     float coef[8];
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    float xi;
-    float wn;
-    float real;
-    float imag;
-    float minZ;
-    float maxZ;
-    float zero;
-    float Kp;
-    float Ti;
-    float Td;
-    float N;
-#endif
 } PI_D;
 
 // 1st order observer
@@ -134,10 +105,6 @@ typedef struct
     float samplingTime;
     float Kd;
     float zd;
-#ifdef SAVE_CONTINUOS_PARAMETERS
-    float Kol;
-    float wol;
-#endif
 } FirstOrderObserver;
 
 //------------------------------------------------------------------------------
@@ -165,8 +132,8 @@ void filterReset(FirstOrderFilter *this);
 void filterDiscreet(FirstOrderFilter *this, const float zero, const float pole);
 float filterProcess(FirstOrderFilter *this, const float input);
 
-/* This is meant to be the minimalistic implemensamplingTimetion
- * of a first order filter, there is only one pole and
+/* This is meant to be the minimalistic implementation
+ * of a first order filter. There is only one pole and
  * it uses the simpler forward discretization method
  */
 void sFilterInit(SimplifiedFirstOrderFilter *this, const float pole, const float samplingTime);
@@ -174,14 +141,14 @@ void sFilterReset(SimplifiedFirstOrderFilter *this);
 void sFilterDiscreet(SimplifiedFirstOrderFilter *this, const float pole);
 float sFilterProcess(SimplifiedFirstOrderFilter *this, const float input);
 
-void piInit(PI *this, const float samplingTime);
+void piInit(PI *this, const float samplingTime, const bool useSaturator);
 void piReset(PI *this);
 void piDiscreet(PI *this, const float Kp, const float Ti);
 void piPoleZeroCancelationProject(PI *this, const float wcl, const float Kol, const float wol);
 void piClosedLoopResponseProject(PI *this, const float Mov, const float ts2, const float Kol, const float wol);
 float piControl(PI *this, const float setPoint, const float feedBack);
 
-void pidInit(PI_D *this, const float samplingTime);
+void pidInit(PI_D *this, const float samplingTime, const bool useSaturator, const bool usePreFilter);
 void pidReset(PI_D *this);
 void pidDiscreet(PI_D *this, const float Kp, const float Ti, const float Td, const float N);
 void pidClosedLoopResponseProject(PI_D *this, const float Mov, const float ts2, const float Kol, const float wol);
@@ -192,7 +159,7 @@ void observerReset(FirstOrderObserver *this);
 void observerProject(FirstOrderObserver *this, const float Kol, const float wol);
 float observerProcess(FirstOrderObserver *this, const float input);
 
-#endif // __CONTROLLERS_H
+#endif  // __CONTROLLERS_H
 
 //------------------------------------------------------------------------------
 // END

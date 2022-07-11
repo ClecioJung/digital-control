@@ -333,11 +333,9 @@ The Laplace transfer function estimated by this observer is:
 
 <img src="https://render.githubusercontent.com/render/math?math=\color{blue} O(s) = \displaystyle\frac{K_{ol}}{s %2B w_{ol}}">
 
-More information about the functioning of this library can be achieved by consulting the source code (its not that hard). Feel free to contact me with questions or comments.
-
 ### Indirect Field Oriented Control (IFOC)
 
-The [IFOC](https://en.wikipedia.org/wiki/Vector_control_(motor)) is a control method largely used with [variable-frequency drives (VFD)](https://en.wikipedia.org/wiki/Variable-frequency_drive) to control the troque and/or speed of [induction motors](https://en.wikipedia.org/wiki/Induction_motor). In this library, this control method is implemented by the `IFOC` structure. Check out this example:
+The [IFOC](https://en.wikipedia.org/wiki/Vector_control_(motor)) is a control method largely used with [variable-frequency drives (VFD)](https://en.wikipedia.org/wiki/Variable-frequency_drive) to control the troque and/or speed of [induction motors](https://en.wikipedia.org/wiki/Induction_motor). In this library, this control method is implemented by the `IFOC` structure. The project of this controller requires the parameters of the matematical model of the motor, which can be obtained from blocked rotor and no-load tests of induction motors. Check out this example:
 
 ```c
 const float samplingTime = 0.01f;
@@ -354,7 +352,7 @@ const float Xm = 14.6; // Magnetizing reactance
 IFOC ifoc;
 void ifocInit(&ifoc, samplingTime, useSaturator, useFeedforward);
 // Inform the motor parameters to the IFOC struct and project the controllers
-// This parameters can be obtained from standstill and no-load tests
+// This parameters can be obtained from blocked rotor and no-load tests
 ifocProject(&ifoc, p, fn, rs, rr, Xls, Xlr, Xm);
 // Calculate the IFOC outputs (vBeta and vAlpha). This function must be called
 // periodically, with the period provided by samplingTime
@@ -388,7 +386,7 @@ const float max_ids = 12.0;      // Maximum direct axis current (A)
 const float min_ids = 0.1;       // Minimum direct axis current (A)
 ifocSetSaturators(&ifoc, max_voltage, max_ids, min_ids);
 // Inform the motor parameters to the IFOC struct and project the controllers
-// This parameters can be obtained from standstill and no-load tests
+// This parameters can be obtained from blocked rotor and no-load tests
 ifocProject(&ifoc, p, fn, rs, rr, Xls, Xlr, Xm);
 // Calculate the IFOC outputs (vBeta and vAlpha). This function must be called
 // periodically, with the period provided by samplingTime
@@ -399,3 +397,5 @@ You may also use feedforward compensation with the current controllers. TO do so
 - [Melhoria da robustez e eficiência em acionamentos de motores de indução trifásicos combinando as técnicas IFOC, LMC e MRAC](https://repositorio.utfpr.edu.br/jspui/bitstream/1/24529/1/melhoriarobustezeficienciamotores.pdf) (in brazilian portuguese);
 - [Reactive power based MRAC for robustness and efficiency improvements on a IFOC induction motor drive](https://ieeexplore.ieee.org/document/9067318);
 - [Adaptive Loss Model Control for robustness and efficiency improvement of induction motor drive](https://ieeexplore.ieee.org/abstract/document/9612111);
+
+More information about the functioning of this library can be achieved by consulting the source code (its not that hard). Feel free to contact me with questions or comments.

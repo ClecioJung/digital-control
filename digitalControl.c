@@ -5,7 +5,9 @@
 #include "digitalControl.h"
 
 #include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 //------------------------------------------------------------------------------
 // DEFINITIONSS
@@ -289,9 +291,8 @@ float pidControl(PI_D *this, const float setPoint, const float feedBack) {
 }
 
 //------------------------------------------------------------------------------
-void observerInit(FirstOrderObserver *this, const float Kol, const float wol, const float samplingTime) {
+void observerInit(FirstOrderObserver *this, const float samplingTime) {
     this->samplingTime = samplingTime;
-    observerProject(this, Kol, wol);
     observerReset(this);
 }
 
@@ -310,6 +311,97 @@ float observerProcess(FirstOrderObserver *this, const float input) {
     this->previousOutput = this->zd * this->previousOutput + this->Kd * (this->previousInput);
     this->previousInput = input;
     return this->previousOutput;
+}
+
+//------------------------------------------------------------------------------
+void ifocInit(IFOC *this, const float samplingTime, const bool useSaturator, const bool useFeedforward) {
+    piInit(&this->piIqs, samplingTime, useSaturator);
+    piInit(&this->piIds, samplingTime, useSaturator);
+    piInit(&this->piIdm, samplingTime, useSaturator);
+    observerInit(&this->IdmObserver, samplingTime);
+    this->samplingTime = samplingTime;
+    this->useFeedforward = useFeedforward;
+    this->theta = -M_PI / 2.0;
+}
+
+void ifocReset(IFOC *this) {
+    piReset(&this->piIqs);
+    piReset(&this->piIds);
+    piReset(&this->piIdm);
+    observerReset(&this->IdmObserver);
+    this->theta = -M_PI / 2.0;
+}
+
+void ifocSetSaturators(IFOC *this, const float max_voltage, const float max_ids, const float min_ids) {
+    saturatorSet(&this->piIqs.sat, max_voltage, -max_voltage);
+    saturatorSet(&this->piIds.sat, max_voltage, -max_voltage);
+    saturatorSet(&this->piIdm.sat, max_ids, -min_ids);
+}
+
+void ifocProject(IFOC *this, const uint16_t p, const float fn, const float rs, const float rr, const float Xls, const float Xlr, const float Xm) {
+    const float wn = 2 * M_PI * fn;
+    // Reactances
+    const float Xss = Xm + Xls;
+    const float Xrr = Xm + Xlr;
+    // Inductances
+    const float Lm = Xm / wn;
+    const float Lss = Xss / wn;
+    const float Lrr = Xrr / wn;
+    // Secondary coefficients
+    const float sigma = 1 - powf(Lm, 2) / (Lss * Lrr);
+    this->delta = powf(Lm, 2) / (sigma * Lss * Lrr);
+    this->Lsigmas = sigma * Lss;
+    this->eta = rr / Lrr;
+    this->gamma = (rs + powf(Lm / Lrr, 2) * rr) / this->Lsigmas;
+    // Torque-current proportionality constant
+    this->Km = (3 * ((float)p) / 4) * (powf(Lm, 2) / Lrr);
+    // Project the observer
+    observerProject(&this->IdmObserver, 1.0, this->eta);
+    // Project the controllers (3 times faster than in open-loop)
+    piPoleZeroCancelationProject(&this->piIqs, 3.0 * this->gamma, 1.0 / (this->gamma * this->Lsigmas), this->gamma);
+    piPoleZeroCancelationProject(&this->piIds, 3.0 * this->gamma, 1.0 / (this->gamma * this->Lsigmas), this->gamma);
+    piPoleZeroCancelationProject(&this->piIdm, 3.0 * this->eta, 1.0, this->eta);
+}
+
+void ifocControl(IFOC *this, const float spTe, const float spIdm, const float currentA, const float currentB, const float wr, float *const uBeta, float *const uAlpha) {
+    const float ct = cosf(this->theta);
+    const float st = sinf(this->theta);
+    // Alpha-Beta Transform
+    const float iBeta = currentA;
+    const float iAlpha = (-currentA - 2.0 * currentB) / sqrtf(3.0);
+    // QD0 Transform
+    const float iqs = ct * iBeta - st * iAlpha;
+    const float ids = st * iBeta + ct * iAlpha;
+    // Magnetizing current
+    const float idm = observerProcess(&this->IdmObserver, ids);
+    // Referential speed
+    const float wref = wr + ((fabs(idm) > EPSILON) ? ((this->eta * iqs) / idm) : 0.0);
+    // Iqs setpoint
+    const float spIqs = spTe / (this->Km * spIdm);
+    // Magnetizing current controller
+    const float spIds = piControl(&this->piIdm, spIdm, idm);
+    // Current controllers
+    float eqs = 0.0f, eds = 0.0f;
+    if (this->useFeedforward) {
+        eqs = this->Lsigmas * (wref * ids + this->delta * wr * idm);
+        eds = -this->Lsigmas * (wref * iqs + this->delta * this->eta * idm);
+    }
+    float uqs = eqs + piControl(&this->piIqs, spIqs, iqs);
+    float uds = eds + piControl(&this->piIds, spIds, ids);
+    // QD0 Transform
+    if (uBeta != NULL) {
+        *uBeta = ct * uqs + st * uds;
+    }
+    if (uAlpha != NULL) {
+        *uAlpha = -st * uqs + ct * uds;
+    }
+    // Integrates the referential angle
+    this->theta += wref * this->samplingTime;
+    if (this->theta >= 2.0 * M_PI) {
+        this->theta -= 2.0 * M_PI;
+    } else if (this->theta <= 0) {
+        this->theta += 2.0 * M_PI;
+    }
 }
 
 //------------------------------------------------------------------------------

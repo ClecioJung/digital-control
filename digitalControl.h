@@ -10,6 +10,12 @@
 #include <stdint.h>
 
 //------------------------------------------------------------------------------
+// DEFINITIONS
+//------------------------------------------------------------------------------
+
+#define EPSILON 0.01
+
+//------------------------------------------------------------------------------
 // CUSTOM TYPES
 //------------------------------------------------------------------------------
 
@@ -107,6 +113,23 @@ typedef struct
     float zd;
 } FirstOrderObserver;
 
+typedef struct
+{
+    PI piIqs;
+    PI piIds;
+    PI piIdm;
+    FirstOrderObserver IdmObserver;
+    bool useFeedforward;
+    float theta;
+    // Constants
+    float samplingTime;
+    float delta;
+    float Lsigmas;
+    float eta;
+    float gamma;
+    float Km;
+} IFOC;
+
 //------------------------------------------------------------------------------
 // FUNCTION PROTOTYPES
 //------------------------------------------------------------------------------
@@ -154,10 +177,16 @@ void pidDiscreet(PI_D *this, const float Kp, const float Ti, const float Td, con
 void pidClosedLoopResponseProject(PI_D *this, const float Mov, const float ts2, const float Kol, const float wol);
 float pidControl(PI_D *this, const float setPoint, const float feedBack);
 
-void observerInit(FirstOrderObserver *this, const float Kol, const float wol, const float samplingTime);
+void observerInit(FirstOrderObserver *this, const float samplingTime);
 void observerReset(FirstOrderObserver *this);
 void observerProject(FirstOrderObserver *this, const float Kol, const float wol);
 float observerProcess(FirstOrderObserver *this, const float input);
+
+void ifocInit(IFOC *this, const float samplingTime, const bool useSaturator, const bool useFeedforward);
+void ifocReset(IFOC *this);
+void ifocSetSaturators(IFOC *this, const float max_voltage, const float max_ids, const float min_ids);
+void ifocProject(IFOC *this, const uint16_t p, const float fn, const float rs, const float rr, const float Xls, const float Xlr, const float Xm);
+void ifocControl(IFOC *this, const float spTe, const float spIdm, const float currentA, const float currentB, const float wr, float *const uBeta, float *const uAlpha);
 
 #endif  // __CONTROLLERS_H
 

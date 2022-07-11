@@ -6,9 +6,6 @@
 CC = gcc
 AR = ar
 
-# Libraries
-INCLUDES =
-
 # Flags for compiler
 CFLAGS = -W -Wall -Wextra -pedantic -Werror -O2 -std=c99
 

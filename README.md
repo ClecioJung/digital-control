@@ -22,6 +22,7 @@ Thisis a simple C library containing very useful digital control and signal proc
     - [Proportional Integral (PI) Control](#Proportional-Integral-PI-Control);
     - [Proportional Integral Derivative (PID) Control](#Proportional-Integral-Derivative-PID-Control);
     - [First Order Observer](#First-Order-Observer);
+    - [Indirect Field Oriented Control (IFOC)](#Indirect-Field-Oriented-Control-IFOC);
 
 ## Usage
 
@@ -202,7 +203,7 @@ You can reset the internal state of this controller by calling the following fun
 piReset(&pi);
 ```
 
-This library also provides tho functions to automatically calculate its gains. The first of this functions receives the desired closed loop bandwidth (`wcl`), the open loop bandwidth (`wol`) and the open loop gain (`Kol`) of your system and project the controller using pole-zero cancelation method. here is a usage example (if you use this function, you don't call the function `piDiscreet`):
+This library also provides two functions to automatically calculate its gains. The first of this functions receives the desired closed loop bandwidth (`wcl`), the open loop bandwidth (`wol`) and the open loop gain (`Kol`) of your system and project the controller using pole-zero cancelation method. here is a usage example (if you use this function, you don't call the function `piDiscreet`):
 
 ```c
 piPoleZeroCancelationProject(&pi, wcl, Kol, wol);
@@ -214,7 +215,7 @@ Another project possibility is to design the controller for a desired second ord
 piClosedLoopResponseProject(&pi, Mov, ts2, Kol, wol);
 ```
 
-If you wish to use saturators in this controler, you must inform this at the initialization of the `PI` structure and must also initialize the  internal saturator, like so:
+If you wish to use saturators in this controller, you must inform this at the initialization of the `PI` structure and must also initialize the  internal saturator, like so:
 
 ```c
 // Creates an PI object and initializes it
@@ -270,7 +271,7 @@ Just as in the PI controller case, you can design this controller for a desired 
 pidClosedLoopResponseProject(&pid, Mov, ts2, Kol, wol);
 ```
 
-If you wish to use saturators in this controler, you must pass `true` to the second argument of the function `pidInit`, and must also initialize the `PI_D` internal saturator. This procedure is similar to the `PI` case.
+If you wish to use saturators in this controller, you must pass `true` to the second argument of the function `pidInit`, and must also initialize the `PI_D` internal saturator. This procedure is similar to the `PI` case.
 
 If you pass `true` to the third argument of the function `pidInit`, the `PI_D` controller also will posses an internal pre-filter applied to the reference (setpoint). Here is an example of usage in this case:
 
@@ -304,11 +305,13 @@ This object defines an estimator/observer of a first order system. If you know t
 
 ```c
 const float samplingTime = 0.01f;
-float Kol = 10.0f; // Open loop gain
-float wol = 100.0f; // Open loop bandwidth (rad/s)
 // Creates an observer object and initializes it
 FirstOrderObserver observer;
-observerInit(&observer, Kol, wol, samplingTime);
+observerInit(&observer, samplingTime);
+// Project the observer
+float Kol = 10.0f; // Open loop gain
+float wol = 100.0f; // Open loop bandwidth (rad/s)
+observerProject(&observer, Kol, wol);
 // Calculate the observer output. This function must be called
 // periodically, with the period provided by samplingTime
 float out = observerProcess(&observer, input);
@@ -331,3 +334,68 @@ The Laplace transfer function estimated by this observer is:
 <img src="https://render.githubusercontent.com/render/math?math=\color{blue} O(s) = \displaystyle\frac{K_{ol}}{s %2B w_{ol}}">
 
 More information about the functioning of this library can be achieved by consulting the source code (its not that hard). Feel free to contact me with questions or comments.
+
+### Indirect Field Oriented Control (IFOC)
+
+The [IFOC](https://en.wikipedia.org/wiki/Vector_control_(motor)) is a control method largely used with [variable-frequency drives (VFD)](https://en.wikipedia.org/wiki/Variable-frequency_drive) to control the troque and/or speed of [induction motors](https://en.wikipedia.org/wiki/Induction_motor). In this library, this control method is implemented by the `IFOC` structure. Check out this example:
+
+```c
+const float samplingTime = 0.01f;
+const bool useSaturator = false;
+const bool useFeedforward = false;
+const uint16_t p = 4;  // Pole pairs
+const float fn = 60.0; // Electrical frequency (Hz)
+const float rs = 0.6;  // Statot resistance (ohm)
+const float rr = 0.2;  // Rotor resistance (ohm)
+const float Xls = 1.0; // Stator leakage reactance (ohm)
+const float Xlr = 1.0; // Rotor leakage reactance (ohm)
+const float Xm = 14.6; // Magnetizing reactance
+// Creates an IFOC object and initializes it
+IFOC ifoc;
+void ifocInit(&ifoc, samplingTime, useSaturator, useFeedforward);
+// Inform the motor parameters to the IFOC struct and project the controllers
+// This parameters can be obtained from standstill and no-load tests
+ifocProject(&ifoc, p, fn, rs, rr, Xls, Xlr, Xm);
+// Calculate the IFOC outputs (vBeta and vAlpha). This function must be called
+// periodically, with the period provided by samplingTime
+float spTe = 0.1;     // Torque setpoint (Nm)
+float spIdm = 6.0;    // Magnetising current setpoint (A)
+float currentA = 0.0; // Measured current in phase A (A)
+float currentB = 0.0; // Measured current in phase B (A)
+float wr = 0.0;       // Measured velocity (rad/s)
+float uBeta;          // Control output: beta component of voltage (V)
+float uAlpha;         // Control output: alpha component of voltage (V)
+ifocControl(&ifoc, spTe, spIdm, currentA, currentB, wr, &uBeta, &uAlpha);
+
+```
+
+You can reset the internal state of this controller by calling the following function:
+
+```c
+ifocReset(&ifoc);
+```
+
+If you wish to use saturators in this controller, you must inform this at the initialization of the `IFOC` structure and must also initialize the  internal saturator, like so:
+
+```c
+// Creates an IFOC object and initializes it
+const bool useSaturator = true;
+IFOC ifoc;
+void ifocInit(&ifoc, samplingTime, useSaturator, useFeedforward);
+// Initializes the IFOC internal saturators
+const float max_voltage = 267.0; // Maximum output voltage (V)
+const float max_ids = 12.0;      // Maximum direct axis current (A)
+const float min_ids = 0.1;       // Minimum direct axis current (A)
+ifocSetSaturators(&ifoc, max_voltage, max_ids, min_ids);
+// Inform the motor parameters to the IFOC struct and project the controllers
+// This parameters can be obtained from standstill and no-load tests
+ifocProject(&ifoc, p, fn, rs, rr, Xls, Xlr, Xm);
+// Calculate the IFOC outputs (vBeta and vAlpha). This function must be called
+// periodically, with the period provided by samplingTime
+ifocControl(&ifoc, spTe, spIdm, currentA, currentB, wr, &uBeta, &uAlpha);
+```
+
+You may also use feedforward compensation with the current controllers. TO do so, you just need to set to `true` the third argument when calling the function `ifocInit`. The equations and deductions regarding this implementation of the IFOC algorithm can be better understood by checking the following texts:
+- [Melhoria da robustez e eficiência em acionamentos de motores de indução trifásicos combinando as técnicas IFOC, LMC e MRAC](https://repositorio.utfpr.edu.br/jspui/bitstream/1/24529/1/melhoriarobustezeficienciamotores.pdf) (in brazilian portuguese);
+- [Reactive power based MRAC for robustness and efficiency improvements on a IFOC induction motor drive](https://ieeexplore.ieee.org/document/9067318);
+- [Adaptive Loss Model Control for robustness and efficiency improvement of induction motor drive](https://ieeexplore.ieee.org/abstract/document/9612111);

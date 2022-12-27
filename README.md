@@ -2,7 +2,7 @@
 
 ## Overview
 
-Thisis a simple C library containing very useful digital control and signal processing functionalities destinated for DSP's and microcontrollers. It posseses the following characteristics:
+This is a simple C library containing very useful digital control and signal processing functionalities destinated for DSP's and microcontrollers. It posseses the following characteristics:
 
 - Compatible with C99;
 - It uses `float` variables (32 bits floating point precision), so it is recomended that it is used with a processor that has a [FPU](https://en.wikipedia.org/wiki/Floating-point_unit);
@@ -243,7 +243,7 @@ $$
 
 ### Proportional Integral Derivative (PID) Control
 
-The `PI_D` object defines an implementation of the PI-D controller in the academic form (it posseses filter in the derivative action and the derivative action acts on the feedback signal and not on the error). This algorithm is implemented using the [Tustin's discretization method](https://en.wikipedia.org/wiki/Bilinear_transform) (also known as bilinear transform). Check out this example:
+The `PI_D` object defines an implementation of the PI-D controller in the academic form (it posseses filter in the derivative action and the derivative action acts on the feedback signal and not on the error). This algorithm is implemented using the [Tustin's discretization method](https://en.wikipedia.org/wiki/Bilinear_transform)  with the exception that the derivative action is implemented using the [Backward discretization method](https://en.wikipedia.org/wiki/Backward_Euler_method). Check out this example:
 
 ```c
 const float samplingTime = 0.01f;

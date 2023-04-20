@@ -60,10 +60,10 @@ float upTime = 1.0f;
 float finalValue = 100.0f;
 // Creates a ramp object and initializes it
 RampGenerator ramp;
-void rampInit(&ramp, samplingTime);
+rampInit(&ramp, samplingTime);
 // Configures the ramp object to create a ramp which starts at 0.0f,
 // and ends at finalValue, in the period provided by upTime
-void rampSet(&ramp, upTime, finalValue);
+rampSet(&ramp, upTime, finalValue);
 // Calculate the new ramp value. This function must be called
 // periodically, with the period provided by samplingTime
 float out = calcRamp(&ramp);
@@ -76,7 +76,7 @@ float newUpTime = 1.0f;
 float newFinalValue = 50.0f;
 // The new ramp will start at is previous value and end at newFinalValue,
 // and this change will take newUpTime units of time
-void rampSet(&ramp, newUpTime, newFinalValue);
+rampSet(&ramp, newUpTime, newFinalValue);
 // Calculate the new ramp value
 float out = calcRamp(&ramp);
 ```
@@ -353,14 +353,14 @@ const bool useSaturator = false;
 const bool useFeedforward = false;
 const uint16_t p = 4;  // Pole pairs
 const float fn = 60.0; // Electrical frequency (Hz)
-const float rs = 0.6;  // Statot resistance (ohm)
+const float rs = 0.6;  // Stator resistance (ohm)
 const float rr = 0.2;  // Rotor resistance (ohm)
 const float Xls = 1.0; // Stator leakage reactance (ohm)
 const float Xlr = 1.0; // Rotor leakage reactance (ohm)
 const float Xm = 14.6; // Magnetizing reactance
 // Creates an IFOC object and initializes it
 IFOC ifoc;
-void ifocInit(&ifoc, samplingTime, useSaturator, useFeedforward);
+ifocInit(&ifoc, samplingTime, useSaturator, useFeedforward);
 // Inform the motor parameters to the IFOC struct and project the controllers
 // This parameters can be obtained from blocked rotor and no-load tests
 ifocProject(&ifoc, p, fn, rs, rr, Xls, Xlr, Xm);

@@ -63,7 +63,7 @@ typedef struct
     float coef[3];
 } FirstOrderFilter;
 
-/* This is meant to be the minimalistic implemensamplingTimetion
+/* This is meant to be the minimalistic implementation
  * of a first order filter, there is only one pole and
  * it uses the simpler forward discretization method
  */

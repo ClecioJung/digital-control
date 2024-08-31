@@ -135,7 +135,7 @@ float filterProcess(FirstOrderFilter *this, const float input) {
 }
 
 //------------------------------------------------------------------------------
-/* This is meant to be the minimalistic implemensamplingTimetion
+/* This is meant to be the minimalistic implementation
  * of a first order filter, there is only one pole and
  * it uses the simpler forward discretization method
  */
